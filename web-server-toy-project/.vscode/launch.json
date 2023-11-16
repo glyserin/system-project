@@ -5,7 +5,7 @@
         "name": "toy_system",
         "type": "cppdbg",
         "request": "launch",
-        "program": "${workspaceFolder}/system-project/fork-exec-toy-project/bin/toy_system",
+        "program": "${workspaceFolder}/system-project/web-server-toy-project/bin/toy_system",
         "args": [
         ],
         "stopAtEntry": true,
