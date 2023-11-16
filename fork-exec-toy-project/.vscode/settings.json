@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "unistd.h": "c",
+        "system_server.h": "c",
+        "input.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
+}
