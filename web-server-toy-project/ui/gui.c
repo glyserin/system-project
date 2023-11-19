@@ -12,18 +12,20 @@ int create_gui()
     printf("여기서 GUI 프로세스를 생성합니다.\n");
 
     sleep(3);
-    /* fork + exec 를 이용하세요 */
-    /* exec으로 google-chrome-stable을 실행 하세요. */
-    /* (execl("/usr/bin/google-chrome-stable", "google-chrome-stable", "http://localhost:8282", NULL)) */
-    if ((systemPid = fork()) < 0)
-    {
-        perror("create_gui error\n");
-        exit(-1);
+    
+    /* fork + exec */
+    /* exec chromium-browser */
+    switch (systemPid = fork()) {
+    case -1:
+        printf("fork failed\n");
+    case 0:
+        if (execl("/usr/bin/chromium-browser", "chromium-browser", "http://localhost:8282", NULL)) {
+            printf("execfailed\n");
+        }
+        break;
+    default:
+        break;
     }
-    else if (systemPid == 0)
-    {
-        execl("/usr/bin/chromium-browser", "chromium-browser", "http://localhost:8282", NULL);
-    }
-
+    
     return 0;
 }

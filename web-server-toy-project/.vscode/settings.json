@@ -4,5 +4,5 @@
         "system_server.h": "c",
         "input.h": "c"
     },
-    "C_Cpp.errorSquiggles": "Disabled"
+    "C_Cpp.errorSquiggles": "disabled"
 }
