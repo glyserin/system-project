@@ -14,7 +14,6 @@
 static int toy_timer = 0;
 
 static void timer_expire_signal_handler() {
-    // printf("timer_expire_signal_handler: %d\n", toy_timer);
     toy_timer++;
 }
 

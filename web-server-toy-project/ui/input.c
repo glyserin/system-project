@@ -29,6 +29,7 @@ typedef struct _sig_ucontext {
 } sig_ucontext_t;
 
 static pthread_mutex_t global_message_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 /* 모든 문제를 만드는 global var */
 static char global_message[TOY_BUFFSIZE];
 
@@ -70,10 +71,21 @@ void segfault_handler(int sig_num, siginfo_t * info, void * ucontext) {
 /* sensor thread */
 void *sensor_thread(void* arg) {
     char *s = arg;
+    char saved_message[TOY_BUFFSIZE];
+    int i = 0;
 
     printf("%s", s);
 
     while (1) {
+        i = 0;
+        
+        //mutex, critical region으로 취급
+        while (global_message[i] != NULL) {
+            printf("%c", global_message[i]);
+            fflush(stdout);
+            posix_sleep_ms(500);
+            i++;
+        }
         posix_sleep_ms(5000);
     }
 
@@ -82,17 +94,20 @@ void *sensor_thread(void* arg) {
 
 /* command thread */
 int toy_send(char **args);
+int toy_mutex(char **args);
 int toy_shell(char **args);
 int toy_exit(char **args);
 
 char *builtin_str[] = {
     "send",
+    "mu",
     "sh",
     "exit"
 };
 
 int (*builtin_func[]) (char **) = {
     &toy_send,
+    &toy_mutex,
     &toy_shell,
     &toy_exit
 };
@@ -107,6 +122,18 @@ int toy_send(char **args) {
     return 1;
 }
 
+int toy_mutex(char **args) {
+    if (args[1] == NULL) {
+        return 1;
+    }
+
+    printf("save message: %s\n", args[1]);
+
+    pthread_mutex_lock(&global_message_mutex);
+    strcpy(global_message, args[1]);
+    pthread_mutex_unlock(&global_message_mutex);
+    return 1;
+}
 
 int toy_exit(char **args) {
     return 0;
@@ -205,7 +232,9 @@ void toy_loop(void) {
     int status;
 
     do {
+        pthread_mutex_lock(&global_message_mutex);
         printf("toy>");
+        pthread_mutex_lock(&global_message_mutex);
         line = toy_read_line();
         args = toy_split_line(line);
         status = toy_execute(args);
