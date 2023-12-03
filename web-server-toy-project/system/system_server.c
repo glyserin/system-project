@@ -11,10 +11,17 @@
 #include <input.h>
 #include <web_server.h>
 
+pthread_mutex_t system_loop_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t  system_loop_cond  = PTHREAD_COND_INITIALIZER;
+bool            system_loop_exit = false;    ///< true if main loop should exit
+
 static int toy_timer = 0;
+
+void signal_exit(void);
 
 static void timer_expire_signal_handler() {
     toy_timer++;
+    signal_exit();
 }
 
 void set_periodic_timer(long sec_delay, long usec_delay) {
@@ -79,12 +86,23 @@ void *camera_service_thread(void* arg) {
 
     printf("%s", s);
 
+    toy_camera_open();
+    toy_camera_take_picture();
+
     while (1)
     {
         posix_sleep_ms(5000);
     }
 
     return 0; 
+}
+
+void signal_exit(void)
+{
+    pthread_mutex_lock(&system_loop_mutex);
+    system_loop_exit = true;
+    pthread_cond_broadcast(&system_loop_cond);
+    pthread_mutex_unlock(&system_loop_mutex);
 }
 
 int system_server()
@@ -118,12 +136,21 @@ int system_server()
 
     printf("system init done. waiting...");
 
+    /* cond wait로 대기, 10초 후 알람이 울리면 <== system 출력 */
+    pthread_mutex_lock(&system_loop_mutex);
+    /* wake-up every 1sec */
+    while (system_loop_exit == false) {
+        sleep(1);
+    }
+    pthread_mutex_unlock(&system_loop_mutex);
+
+    printf("<== system\n");
+
     /* wake-up every 1sec */
     while (1) {
         sleep(1);
     }
     
-    printf("<== system\n");
     return 0;
 }
 
@@ -135,7 +162,7 @@ int create_system_server()
     printf("여기서 시스템 프로세스를 생성합니다.\n");
 
     /* fork */
-   switch (systemPid = fork()) {
+    switch (systemPid = fork()) {
     case -1:
         printf("fork failed\n");
     case 0:
