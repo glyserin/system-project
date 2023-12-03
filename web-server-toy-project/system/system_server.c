@@ -10,6 +10,7 @@
 #include <gui.h>
 #include <input.h>
 #include <web_server.h>
+#include <camera_HAL.h>
 
 pthread_mutex_t system_loop_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  system_loop_cond  = PTHREAD_COND_INITIALIZER;
@@ -57,11 +58,21 @@ void *watchdog_thread(void* arg) {
 
 void *disk_service_thread(void* arg) {
     char *s = arg;
+    FILE* apipe;
+    char buf[1024];
+    char cmd[]="df -h ./" ;
 
     printf("%s", s);
 
     while (1)
     {
+        apipe = popen(cmd, "r");
+        while (fgets(buf, 1024, apipe))
+        {
+            printf("%s", buf);
+        }
+        pclose(apipe);        
+
         posix_sleep_ms(5000);
     }
 
@@ -117,11 +128,9 @@ int system_server()
 
     printf("나 system_server 프로세스!\n");
 
-    /* 5sec timer creation */
     signal(SIGALRM, timer_expire_signal_handler);
-
     /* 5sec timer registeration */
-    set_periodic_timer(5, 0);
+    set_periodic_timer(10, 0);
 
 
     /* Thread creation */
@@ -129,7 +138,7 @@ int system_server()
     assert(retcode == 0);
     retcode = pthread_create(&disk_service_thread_tid, NULL, disk_service_thread, "watchdog_thread\n");
     assert(retcode == 0);
-    retcode = pthread_create(&monitor_thread_tid, NULL, monitor_thread, "watchdog_thread\n");
+    retcode = pthread_create(&monitor_thread_tid, NULL, monitor_thread, "monitor_thread\n");
     assert(retcode == 0);
     retcode = pthread_create(&camera_service_thread_tid, NULL, camera_service_thread, "watchdog_thread\n");
     assert(retcode == 0);

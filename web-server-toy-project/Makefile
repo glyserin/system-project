@@ -5,7 +5,7 @@ UI = ./ui
 WEB_SERVER = ./web_server
 HAL = ./hal
 
-INCLUDES = -I$(SYSTEM) -I$(UI) -I$(WEB_SERVER)
+INCLUDES = -I$(SYSTEM) -I$(UI) -I$(WEB_SERVER) -I$(HAL)
 
 CC = gcc
 CXXLIBS = -lpthread -lm -lrt
@@ -14,8 +14,6 @@ CXX = g++
 
 objects = main.o system_server.o web_server.o input.o gui.o
 cxx_objects = camera_HAL.o ControlThread.o
-
-.PHONY: clean
 
 $(TARGET): $(objects) $(cxx_objects)
 	$(CXX) -o $(TARGET) $(objects) $(cxx_objects) $(CXXLIBS)
@@ -40,7 +38,8 @@ camera_HAL.o: $(HAL)/camera_HAL.cpp
 
 ControlThread.o: $(HAL)/ControlThread.cpp
 	$(CXX) -g $(INCLUDES) $(CXXFLAGS) -c  $(HAL)/ControlThread.cpp
-	
+
+.PHONY: clean
 clean:
 	rm -rf *.o
 	rm -rf $(TARGET)
