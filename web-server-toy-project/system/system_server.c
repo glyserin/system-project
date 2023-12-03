@@ -3,6 +3,8 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <time.h>
+#include <assert.h>
+#include <pthread.h>
 
 #include <system_server.h>
 #include <gui.h>
@@ -12,7 +14,7 @@
 static int toy_timer = 0;
 
 static void timer_expire_signal_handler() {
-    printf("timer_expire_signal_handler: %d\n", toy_timer);
+    // printf("timer_expire_signal_handler: %d\n", toy_timer);
     toy_timer++;
 }
 
@@ -34,12 +36,67 @@ int posix_sleep_ms(unsigned int timeout_ms) {
     return nanosleep(&sleep_time, NULL);
 }
 
+void *watchdog_thread(void* arg) {
+    char *s = arg;
+
+    printf("%s", s);
+
+    while (1)
+    {
+        posix_sleep_ms(5000);
+    }
+
+    return 0; 
+}
+
+void *disk_service_thread(void* arg) {
+    char *s = arg;
+
+    printf("%s", s);
+
+    while (1)
+    {
+        posix_sleep_ms(5000);
+    }
+
+    return 0;    
+}
+
+void *monitor_thread(void* arg) {
+    char *s = arg;
+
+    printf("%s", s);
+
+    while (1)
+    {
+        posix_sleep_ms(5000);
+    }
+
+    return 0; 
+}
+
+void *camera_service_thread(void* arg) {
+    char *s = arg;
+
+    printf("%s", s);
+
+    while (1)
+    {
+        posix_sleep_ms(5000);
+    }
+
+    return 0; 
+}
+
 int system_server()
 {
     struct itimerspec ts;
     struct sigaction sa;
     struct sigevent sev;
     timer_t *tidlist;
+
+    int retcode;
+    pthread_t watchdog_thread_tid, disk_service_thread_tid, monitor_thread_tid, camera_service_thread_tid;
 
     printf("나 system_server 프로세스!\n");
 
@@ -49,11 +106,25 @@ int system_server()
     /* 5sec timer registeration */
     set_periodic_timer(5, 0);
 
+
+    /* Thread creation */
+    retcode = pthread_create(&watchdog_thread_tid, NULL, watchdog_thread, "watchdog_thread\n");
+    assert(retcode == 0);
+    retcode = pthread_create(&disk_service_thread_tid, NULL, disk_service_thread, "watchdog_thread\n");
+    assert(retcode == 0);
+    retcode = pthread_create(&monitor_thread_tid, NULL, monitor_thread, "watchdog_thread\n");
+    assert(retcode == 0);
+    retcode = pthread_create(&camera_service_thread_tid, NULL, camera_service_thread, "watchdog_thread\n");
+    assert(retcode == 0);
+
+    printf("system init done. waiting...");
+
+    /* wake-up every 1sec */
     while (1) {
-        posix_sleep_ms(5000);
+        sleep(1);
     }
     
-
+    printf("<== system\n");
     return 0;
 }
 
