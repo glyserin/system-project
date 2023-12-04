@@ -5,7 +5,7 @@ UI = ./ui
 WEB_SERVER = ./web_server
 HAL = ./hal
 
-INCLUDES = -I$(SYSTEM) -I$(UI) -I$(WEB_SERVER) -I$(HAL)
+INCLUDES = -I$(SYSTEM) -I$(UI) -I$(WEB_SERVER) -I$(HAL) -I./
 
 CC = gcc
 CXXLIBS = -lpthread -lm -lrt
