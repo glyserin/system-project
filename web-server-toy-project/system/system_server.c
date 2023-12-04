@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <pthread.h>
 #include <mqueue.h>
+#include <semaphore.h>
 
 #include <system_server.h>
 #include <gui.h>
@@ -24,12 +25,36 @@ static mqd_t disk_queue;
 static mqd_t camera_queue;
 
 static int toy_timer = 0;
+pthread_mutex_t toy_timer_mutex = PTHREAD_MUTEX_INITIALIZER;
+static sem_t global_timer_sem;
+static bool global_timer_stopped;
 
-void signal_exit(void);
+static void timer_expire_signal_handler()
+{
+    // sem_post: async-signal-safe function
+    sem_post(&global_timer_sem);
+}
 
-static void timer_expire_signal_handler() {
+static void system_timeout_handler()
+{
+    pthread_mutex_lock(&toy_timer_mutex);
     toy_timer++;
-    signal_exit();
+    printf("toy_timer: %d\n", toy_timer);
+    pthread_mutex_unlock(&toy_timer_mutex);
+}
+
+static void *timer_thread(void *not_used)
+{
+    signal(SIGALRM, timer_expire_signal_handler);
+    set_periodic_timer(1, 1);
+
+	while (!global_timer_stopped) {
+        // sleep(1);
+        // wait if 0
+        sem_wait(&global_timer_sem);
+		system_timeout_handler();
+	}
+	return 0;
 }
 
 void set_periodic_timer(long sec_delay, long usec_delay) {
@@ -170,9 +195,9 @@ int system_server()
 
     printf("나 system_server 프로세스!\n");
 
-    signal(SIGALRM, timer_expire_signal_handler);
-    /* 10sec timer registeration */
-    set_periodic_timer(10, 0);
+    retcode = sem_init(&global_timer_sem, 0, 1);
+    assert(retcode != -1);
+
 
     /* open message queue */
     watchdog_queue = mq_open("/watchdog_queue", O_RDWR);
@@ -193,12 +218,13 @@ int system_server()
     assert(retcode == 0);
     retcode = pthread_create(&camera_service_thread_tid, NULL, camera_service_thread, "watchdog_thread\n");
     assert(retcode == 0);
+    retcode = pthread_create(&timer_thread_tid, NULL, timer_thread, "timer thread\n");
+    assert(retcode == 0);
 
     printf("system init done. waiting...");
 
     /* cond wait로 대기, 10초 후 알람이 울리면 <== system 출력 */
     pthread_mutex_lock(&system_loop_mutex);
-    /* wake-up every 1sec */
     while (system_loop_exit == false) {
         pthread_cond_wait(&system_loop_cond, &system_loop_mutex);
     }
