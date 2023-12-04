@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <mqueue.h>
 #include <semaphore.h>
+#include <sys/shm.h>
 
 #include <system_server.h>
 #include <gui.h>
@@ -14,6 +15,7 @@
 #include <web_server.h>
 #include <camera_HAL.h>
 #include <toy_message.h>
+#include <shared_memory.h>
 
 pthread_mutex_t system_loop_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  system_loop_cond  = PTHREAD_COND_INITIALIZER;
@@ -28,6 +30,9 @@ static int toy_timer = 0;
 pthread_mutex_t toy_timer_mutex = PTHREAD_MUTEX_INITIALIZER;
 static sem_t global_timer_sem;
 static bool global_timer_stopped;
+
+static shm_sensor_t *the_sensor_info = NULL;
+void set_periodic_timer(long sec_delay, long usec_delay);
 
 static void timer_expire_signal_handler()
 {
@@ -49,9 +54,17 @@ static void *timer_thread(void *not_used)
     set_periodic_timer(1, 1);
 
 	while (!global_timer_stopped) {
+        int rc = sem_wait(&global_timer_sem);
+		if (rc == -1 && errno == EINTR) {
+		    continue;
+		}
+
+		if (rc == -1) {
+		    perror("sem_wait");
+		    exit(-1);
+		}
         // sleep(1);
         // wait if 0
-        sem_wait(&global_timer_sem);
 		system_timeout_handler();
 	}
 	return 0;
@@ -95,6 +108,41 @@ void *watchdog_thread(void* arg) {
     return 0; 
 }
 
+#define SENSOR_DATA 1
+
+void *monitor_thread(void* arg) {
+    char *s = arg;
+    int mqretcode;
+    toy_msg_t msg;
+    int shmid;
+
+
+    printf("%s", s);
+
+    while (1)
+    {
+        mqretcode = (int)mq_receive(monitor_queue, (void *)&msg, sizeof(toy_msg_t), 0);
+        assert(mqretcode >= 0);
+        printf("monitor_thread: message received.\n");
+        printf("msg.type: %d\n", msg.msg_type);
+        printf("msg.param1: %d\n", msg.param1);
+        printf("msg.param2: %d\n", msg.param2);
+
+        if (msg.msg_type == SENSOR_DATA) {
+            shmid = msg.param1;
+            // print SYS V shared memory data
+            // shared memory key is from message queue
+            the_sensor_info = toy_shm_attach(shmid);
+            printf("sensor temp: %d\n", the_sensor_info->temp);
+            printf("sensor press: %d\n", the_sensor_info->press);
+            printf("sensor humidity: %d\n", the_sensor_info->humidity);
+            toy_shm_detach(the_sensor_info);
+        }
+    }
+
+    return 0; 
+}
+
 void *disk_service_thread(void* arg) {
     char *s = arg;
     FILE* apipe;
@@ -124,26 +172,6 @@ void *disk_service_thread(void* arg) {
     }
 
     return 0;    
-}
-
-void *monitor_thread(void* arg) {
-    char *s = arg;
-    int mqretcode;
-    toy_msg_t msg;
-
-    printf("%s", s);
-
-    while (1)
-    {
-        mqretcode = (int)mq_receive(monitor_queue, (void *)&msg, sizeof(toy_msg_t), 0);
-        assert(mqretcode >= 0);
-        printf("monitor_thread: message received.\n");
-        printf("msg.type: %d\n", msg.msg_type);
-        printf("msg.param1: %d\n", msg.param1);
-        printf("msg.param2: %d\n", msg.param2);
-    }
-
-    return 0; 
 }
 
 #define CAMERA_TAKE_PICTURE 1
@@ -190,13 +218,13 @@ int system_server()
     timer_t *tidlist;
 
     int retcode;
-    pthread_t watchdog_thread_tid, disk_service_thread_tid, monitor_thread_tid, camera_service_thread_tid;
+    pthread_t watchdog_thread_tid, monitor_thread_tid, disk_service_thread_tid, camera_service_thread_tid;
     pthread_t timer_thread_tid;
 
     printf("나 system_server 프로세스!\n");
 
-    retcode = sem_init(&global_timer_sem, 0, 1);
-    assert(retcode != -1);
+    // retcode = sem_init(&global_timer_sem, 0, 1);
+    // assert(retcode != -1);
 
 
     /* open message queue */
@@ -212,9 +240,9 @@ int system_server()
     /* Thread creation */
     retcode = pthread_create(&watchdog_thread_tid, NULL, watchdog_thread, "watchdog_thread\n");
     assert(retcode == 0);
-    retcode = pthread_create(&disk_service_thread_tid, NULL, disk_service_thread, "watchdog_thread\n");
-    assert(retcode == 0);
     retcode = pthread_create(&monitor_thread_tid, NULL, monitor_thread, "monitor_thread\n");
+    assert(retcode == 0);
+    retcode = pthread_create(&disk_service_thread_tid, NULL, disk_service_thread, "watchdog_thread\n");
     assert(retcode == 0);
     retcode = pthread_create(&camera_service_thread_tid, NULL, camera_service_thread, "watchdog_thread\n");
     assert(retcode == 0);

@@ -12,7 +12,7 @@ CXXLIBS = -lpthread -lm -lrt
 CXXFLAGS = $(INCLUDEDIRS) -g -O0 -std=c++14
 CXX = g++
 
-objects = main.o system_server.o web_server.o input.o gui.o
+objects = main.o system_server.o web_server.o input.o gui.o shared_memory.o
 cxx_objects = camera_HAL.o ControlThread.o
 
 $(TARGET): $(objects) $(cxx_objects)
@@ -23,6 +23,9 @@ main.o:  main.c
 
 system_server.o: $(SYSTEM)/system_server.h $(SYSTEM)/system_server.c
 	$(CC) -g $(INCLUDES) -c ./system/system_server.c
+
+shared_memory.o: $(SYSTEM)/shared_memory.h $(SYSTEM)/shared_memory.c
+	$(CC) -g $(INCLUDES) -c ./system/shared_memory.c
 
 gui.o: $(UI)/gui.h $(UI)/gui.c
 	$(CC) -g $(INCLUDES) -c $(UI)/gui.c

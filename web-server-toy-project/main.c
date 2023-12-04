@@ -89,7 +89,7 @@ int main()
 
     printf("메인 함수입니다.\n");
 
-    /* Create main queue */
+    /* Create message queue */
     retcode = create_message_queue(&watchdog_queue, "/watchdog_queue", NUM_MESSAGES, sizeof(toy_msg_t));
     assert(retcode == 0);
     retcode = create_message_queue(&monitor_queue, "/monitor_queue", NUM_MESSAGES, sizeof(toy_msg_t));

@@ -3,7 +3,10 @@
         "unistd.h": "c",
         "system_server.h": "c",
         "input.h": "c",
-        "signal.h": "c"
+        "signal.h": "c",
+        "shared_memory.h": "c",
+        "shm.h": "c",
+        "mman.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
