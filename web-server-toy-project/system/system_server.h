@@ -11,6 +11,7 @@
 #include <stdbool.h>    /* 'bool' type plus 'true' and 'false' constants */
 
 int create_system_server();
+int posix_sleep_ms(unsigned int timeout_ms);
 
 #define USEC_PER_SECOND         1000000  /* one million */ 
 #define USEC_PER_MILLISEC       1000     /* one thousand */

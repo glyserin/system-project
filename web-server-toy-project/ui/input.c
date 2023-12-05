@@ -1,15 +1,15 @@
-#include <stdio.h>
+#include <assert.h>
+#include <pthread.h>
 #include <sys/prctl.h>
 #include <execinfo.h>
 #include <signal.h>
-#include <stdlib.h>
-#include <string.h>
 #include <ucontext.h>
-#include <unistd.h>
-#include <assert.h>
-#include <pthread.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <mqueue.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -19,6 +19,7 @@
 #include <gui.h>
 #include <input.h>
 #include <web_server.h>
+#include <execinfo.h>
 #include <toy_message.h>
 #include <shared_memory.h>
 

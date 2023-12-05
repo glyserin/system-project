@@ -1,13 +1,22 @@
+#include <assert.h>
+#include <pthread.h>
 #include <stdio.h>
+#include <semaphore.h>
 #include <sys/prctl.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <time.h>
-#include <assert.h>
-#include <pthread.h>
 #include <mqueue.h>
-#include <semaphore.h>
-#include <sys/shm.h>
+#include <sys/inotify.h>
+#include <limits.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <sys/sysmacros.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <stdint.h>
+#include <string.h>
+#include <dirent.h>
 
 #include <system_server.h>
 #include <gui.h>
@@ -16,6 +25,9 @@
 #include <camera_HAL.h>
 #include <toy_message.h>
 #include <shared_memory.h>
+
+#define BUF_LEN 1024
+#define TOY_TEST_FS "./fs"
 
 pthread_mutex_t system_loop_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  system_loop_cond  = PTHREAD_COND_INITIALIZER;
@@ -143,32 +155,75 @@ void *monitor_thread(void* arg) {
     return 0; 
 }
 
+static long get_directory_size(char *dirname)
+{
+    DIR *dir = opendir(dirname);
+    if (dir == 0)
+        return 0;
+
+    struct dirent *dit;
+    struct stat st;
+    long size = 0;
+    long total_size = 0;
+    char filePath[1024];
+
+    while ((dit = readdir(dir)) != NULL) {
+        if ( (strcmp(dit->d_name, ".") == 0) || (strcmp(dit->d_name, "..") == 0) )
+            continue;
+
+        sprintf(filePath, "%s/%s", dirname, dit->d_name);
+        if (lstat(filePath, &st) != 0)
+            continue;
+        size = st.st_size;
+
+        if (S_ISDIR(st.st_mode)) {
+            long dir_size = get_directory_size(filePath) + size;
+            total_size += dir_size;
+        } else {
+            total_size += size;
+        }
+    }
+    return total_size;
+}
+
+
 void *disk_service_thread(void* arg) {
     char *s = arg;
-    FILE* apipe;
-    char buf[1024];
-    char cmd[]="df -h ./" ;
-    int mqretcode;
-    toy_msg_t msg;
+    int inotifyFd, wd, j;
+    char buf[BUF_LEN] __attribute__ ((aligned(8)));
+    ssize_t numRead;
+    char *p;
+    struct inotify_event *event;
+    char *directory = TOY_TEST_FS;
+    int total_size;
 
     printf("%s", s);
 
-    while (1)
-    {
-        mqretcode = (int)mq_receive(disk_queue, (void *)&msg, sizeof(toy_msg_t), 0);
-        assert(mqretcode >= 0);
-        printf("disk_service_thread: message received.\n");
-        printf("msg.type: %d\n", msg.msg_type);
-        printf("msg.param1: %d\n", msg.param1);
-        printf("msg.param2: %d\n", msg.param2);
+    /* create inotify instance */
+    inotifyFd = inotify_init();
+    if (inotifyFd == -1)
+        return 0;
 
-        /* print disk usage every 10sec */
-        apipe = popen(cmd, "r");
-        while (fgets(buf, 1024, apipe))
-        {
-            printf("%s", buf);
+    wd = inotify_add_watch(inotifyFd, TOY_TEST_FS, IN_CREATE);
+    if (wd == -1)
+        return 0;
+
+    for (;;) {
+        numRead = read(inotifyFd, buf, BUF_LEN);
+        if (numRead == 0) {
+            printf("read() from inotify fd returned 0.");
+            return 0;
         }
-        pclose(apipe);        
+
+        if (numRead == -1)
+            return 0;
+
+        for (p = buf; p < buf + numRead; ) {
+            event = (struct inotify_event *) p;
+            p += sizeof(struct inotify_event) + event->len;
+        }
+        total_size = get_directory_size(TOY_TEST_FS);
+        printf("directory size: %d\n", total_size);
     }
 
     return 0;    
@@ -222,9 +277,6 @@ int system_server()
     pthread_t timer_thread_tid;
 
     printf("나 system_server 프로세스!\n");
-
-    // retcode = sem_init(&global_timer_sem, 0, 1);
-    // assert(retcode != -1);
 
 
     /* open message queue */

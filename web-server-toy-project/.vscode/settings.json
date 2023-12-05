@@ -3,10 +3,16 @@
         "unistd.h": "c",
         "system_server.h": "c",
         "input.h": "c",
-        "signal.h": "c",
+        "stdio.h": "c",
+        "iostream": "cpp",
+        "thread": "c",
         "shared_memory.h": "c",
-        "shm.h": "c",
-        "mman.h": "c"
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "utility": "c",
+        "stdint.h": "c",
+        "sysmacros.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
