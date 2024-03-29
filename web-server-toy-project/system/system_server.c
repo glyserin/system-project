@@ -25,6 +25,7 @@
 #include <camera_HAL.h>
 #include <toy_message.h>
 #include <shared_memory.h>
+#include <dump_state.h>
 
 #define BUF_LEN 1024
 #define TOY_TEST_FS "./fs"
@@ -121,6 +122,7 @@ void *watchdog_thread(void* arg) {
 }
 
 #define SENSOR_DATA 1
+#define DUMP_STATE 2
 
 void *monitor_thread(void* arg) {
     char *s = arg;
@@ -149,6 +151,10 @@ void *monitor_thread(void* arg) {
             printf("sensor press: %d\n", the_sensor_info->press);
             printf("sensor humidity: %d\n", the_sensor_info->humidity);
             toy_shm_detach(the_sensor_info);
+        } else if (msg.msg_type == DUMP_STATE) {
+            dumpstate();
+        } else {
+            printf("monitor_thread: unknown message. xxx\n");
         }
     }
 
@@ -237,7 +243,7 @@ void *camera_service_thread(void* arg) {
     toy_msg_t msg;
 
     printf("%s", s);
-
+    
     toy_camera_open();
 
     while (1)
@@ -250,6 +256,10 @@ void *camera_service_thread(void* arg) {
         printf("msg.param2: %d\n", msg.param2);
         if (msg.msg_type == CAMERA_TAKE_PICTURE) {
             toy_camera_take_picture();
+        } else if (msg.msg_type == DUMP_STATE) {
+            toy_camera_dump();
+        } else {
+            printf("camera_service_thread: unknown message. xxx\n");
         }
     }
 

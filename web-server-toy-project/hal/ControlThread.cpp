@@ -23,3 +23,10 @@ int ControlThread::takePicture()
 
     return 0;
 }
+
+int ControlThread::dump()
+{
+    cout << "C++ 연동: Camera Dump." << endl;
+
+    return 0;
+}

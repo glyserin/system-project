@@ -9,6 +9,7 @@ extern "C" {
 
 int toy_camera_open(void);
 int toy_camera_take_picture(void);
+int toy_camera_dump(void);
 
 #ifdef __cplusplus
 } // extern "C"
