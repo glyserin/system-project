@@ -22,10 +22,10 @@
 #include <gui.h>
 #include <input.h>
 #include <web_server.h>
-#include <camera_HAL.h>
 #include <toy_message.h>
 #include <shared_memory.h>
 #include <dump_state.h>
+#include <hardware.h>
 
 #define BUF_LEN 1024
 #define TOY_TEST_FS "./fs"
@@ -241,10 +241,18 @@ void *camera_service_thread(void* arg) {
     char *s = arg;
     int mqretcode;
     toy_msg_t msg;
+    hw_module_t *module = NULL;
+    int res;
 
     printf("%s", s);
     
-    toy_camera_open();
+    // Loading symbol dynamically
+    res = hw_get_camera_module((const hw_module_t **)&module);
+    assert(res == 0);
+    printf("Camera module name: %s\n", module->name);
+    printf("Camera module tag: %d\n", module->tag);
+    printf("Camera module id: %s\n", module->id);
+    module->open();
 
     while (1)
     {
@@ -255,9 +263,9 @@ void *camera_service_thread(void* arg) {
         printf("msg.param1: %d\n", msg.param1);
         printf("msg.param2: %d\n", msg.param2);
         if (msg.msg_type == CAMERA_TAKE_PICTURE) {
-            toy_camera_take_picture();
+            module->take_picture();
         } else if (msg.msg_type == DUMP_STATE) {
-            toy_camera_dump();
+            module->dump();
         } else {
             printf("camera_service_thread: unknown message. xxx\n");
         }

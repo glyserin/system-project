@@ -9,24 +9,24 @@ using std::endl;
 
 ControlThread::ControlThread()
 {
-    cout << "C++ 연동:  여기는 C++ 영역 입니다" << endl;
+    cout << "OEM:  여기는 C++ 영역 입니다" << endl;
 }
 
 ControlThread::~ControlThread()
 {
-    cout << "C++ 연동:  소멸자입니다." << endl;
+    cout << "OEM:  소멸자입니다." << endl;
 }
 
 int ControlThread::takePicture()
 {
-    cout << "C++ 연동:  사진을 캡쳐합니다." << endl;
+    cout << "OEM:  사진을 캡쳐합니다." << endl;
 
     return 0;
 }
 
 int ControlThread::dump()
 {
-    cout << "C++ 연동: Camera Dump." << endl;
+    cout << "OEM: Camera Dump." << endl;
 
     return 0;
 }
